@@ -116,7 +116,7 @@ jobs:
         fi
 
         if [[ ! -z "${{ matrix.fortran_flags }}" ]]; then
-          echo "FORTRAN_FLAGS=${{ join(matrix.fortran_flags, ' ') }}" >> $GITHUB_ENV
+          echo "FORTRAN_FLAGS=-DCMAKE_Fortran_FLAGS_INIT=\"${{ join(matrix.fortran_flags, ' ') }}\"" >> $GITHUB_ENV
         fi
 
         printenv
@@ -213,8 +213,8 @@ jobs:
           ecmwf-ifs/fiat
         dependency_branch: develop
         dependency_cmake_options: |
-          ecmwf-ifs/fiat: "-G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_TESTS=OFF -DENABLE_MPI=ON ${{ matrix.cmake_options }}"
-        cmake_options:    "-G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_MPI=ON -DENABLE_FFTW=ON -DENABLE_ETRANS=ON ${{ matrix.cmake_options }}"
+          ecmwf-ifs/fiat: "-G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_TESTS=OFF -DENABLE_MPI=ON ${{ env.FORTRAN_FLAGS }} ${{ matrix.cmake_options }}"
+        cmake_options:    "-G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_MPI=ON -DENABLE_FFTW=ON -DENABLE_ETRANS=ON ${{ env.FORTRAN_FLAGS }} ${{ matrix.cmake_options }}"
         ctest_options: "${{ matrix.ctest_options }}"
 
     - name: Verify tools

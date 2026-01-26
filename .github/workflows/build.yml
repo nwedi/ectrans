@@ -35,7 +35,7 @@ jobs:
           - linux clang-18
           - linux nvhpc-25.1
           - linux intel-classic
-          - linux amd-flang-7.0.5
+          - linux amd-flang-22.2.0
           - macos
 
         include:
@@ -76,9 +76,9 @@ jobs:
             compiler_fc: ifort
             caching: true
 
-          - name: linux amd-flang-7.0.5
+          - name: linux amd-flang-22.2.0
             os: ubuntu-24.04
-            compiler: amd-flang-7.0.5
+            compiler: amd-flang-22.2.0
             compiler_cc: amdclang
             compiler_cxx: amdclang++
             compiler_fc: amdflang

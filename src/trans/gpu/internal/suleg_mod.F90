@@ -654,13 +654,7 @@ IF(.NOT.D%LGRIDONLY) THEN
                 S%FA(IMLOC)%RPNMDA(JGL,ILA-JI+1)=ZRCVBUFV((JGL-1)*ILA+JI,JSETV)
               ENDDO
             ENDDO
-            IF( S%LKEEPRPNM ) THEN
-              DO JGL=1,IDGLU
-                DO JI=1,ILA
-                  S%FA(IMLOC)%RPNMA(JGL,ILA-JI+1)=ZRCVBUFV((JGL-1)*ILA+JI,JSETV)
-                ENDDO
-              ENDDO
-            ENDIF
+            IF (S%LKEEPRPNM) S%FA(IMLOC)%RPNMA = S%FA(IMLOC)%RPNMDA
           ELSE
             DO JGL=1,IDGLU
               DO JI=1,ILA
@@ -694,13 +688,7 @@ IF(.NOT.D%LGRIDONLY) THEN
                 S%FA(IMLOC)%RPNMDA(JGL,JI) = F%RPNM(ISL+JGL-1,D%NPMS(IM)+IA+(JI-1)*2)
               ENDDO
             ENDDO
-            IF( S%LKEEPRPNM ) THEN
-              DO JI=1,ILA
-                DO JGL=1,IDGLU
-                  S%FA(IMLOC)%RPNMA(JGL,JI) = F%RPNM(ISL+JGL-1,D%NPMS(IM)+IA+(JI-1)*2)
-                ENDDO
-              ENDDO
-            ENDIF
+            IF (S%LKEEPRPNM) S%FA(IMLOC)%RPNMA = S%FA(IMLOC)%RPNMDA
           ELSE
             DO JI=1,ILA
               DO JGL=1,IDGLU
@@ -933,13 +921,7 @@ IF(.NOT.D%LGRIDONLY) THEN
                 S%FA(IMLOC)%RPNMDS(JGL,ILS-JI+1)=ZRCVBUFV((JGL-1)*ILS+JI,JSETV)
               ENDDO
             ENDDO
-            IF( S%LKEEPRPNM ) THEN
-              DO JGL=1,IDGLU
-                DO JI=1,ILS
-                  S%FA(IMLOC)%RPNMS(JGL,ILS-JI+1)=ZRCVBUFV((JGL-1)*ILS+JI,JSETV)
-                ENDDO
-              ENDDO
-            ENDIF
+            IF (S%LKEEPRPNM) S%FA(IMLOC)%RPNMS = S%FA(IMLOC)%RPNMDS
           ELSE
             DO JGL=1,IDGLU
               DO JI=1,ILS
@@ -973,12 +955,7 @@ IF(.NOT.D%LGRIDONLY) THEN
                 S%FA(IMLOC)%RPNMDS(JGL,JI) = F%RPNM(ISL+JGL-1,D%NPMS(IM)+IS+(JI-1)*2)
               ENDDO
             ENDDO
-            IF( S%LKEEPRPNM ) THEN
-              DO JI=1,ILS
-                DO JGL=1,IDGLU
-                  S%FA(IMLOC)%RPNMS(JGL,JI) = F%RPNM(ISL+JGL-1,D%NPMS(IM)+IS+(JI-1)*2)
-                ENDDO
-              ENDDO
+            IF (S%LKEEPRPNM) S%FA(IMLOC)%RPNMS = S%FA(IMLOC)%RPNMDS
             ENDIF
           ELSE
             DO JI=1,ILS

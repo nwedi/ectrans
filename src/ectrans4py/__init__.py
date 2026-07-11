@@ -30,8 +30,6 @@ from ctypesForFortran import addReturnCode, treatReturnCode, IN, OUT, array2stri
 import platform
 
 
-
-
 # Shared objects library
 ########################
 system = platform.system()
@@ -47,11 +45,11 @@ else:
 # env var ECTRANS4PY_PRECISION={single,double}; otherwise prefer whichever is
 # installed (double first, for backward compatibility). The precision fixes the
 # floating-point type of the field data crossing the interface (see _REAL below).
-LD_LIBRARY_PATH = [p for p in os.environ.get('LD_LIBRARY_PATH', '').split(':') if p != '']
+LD_LIBRARY_PATH = [p for p in os.environ.get("LD_LIBRARY_PATH", "").split(":") if p != ""]
 lpath = LD_LIBRARY_PATH + [
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib'),
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib64'),
-        ]
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib"),
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib64"),
+]
 
 
 def _find_library(basename):
@@ -62,9 +60,9 @@ def _find_library(basename):
     return None
 
 
-_requested = os.environ.get('ECTRANS4PY_PRECISION', '').lower()
-_precisions = {'single': 'sp', 'double': 'dp'}.get(_requested)
-_precisions = [_precisions] if _precisions else ['dp', 'sp']  # default preference
+_requested = os.environ.get("ECTRANS4PY_PRECISION", "").lower()
+_precisions = {"single": "sp", "double": "dp"}.get(_requested)
+_precisions = [_precisions] if _precisions else ["dp", "sp"]  # default preference
 shared_objects_library = None
 _prec = None
 for _p in _precisions:
@@ -77,22 +75,25 @@ if shared_objects_library is None:
     raise FileNotFoundError(
         f"None of {_tried} was found in any of {lpath}. You can specify a "
         "different location using env var LD_LIBRARY_PATH, or the precision "
-        "using ECTRANS4PY_PRECISION={single,double}.")
+        "using ECTRANS4PY_PRECISION={single,double}."
+    )
 
 # Floating-point type of the field data (spectral / grid-point) crossing the
 # Fortran interface (the JPRB arrays): float32 for the single-precision build,
 # float64 for the double. Geometry (Gaussian latitudes/weights, Legendre
 # polynomials) and resolution deltas remain double regardless.
-_REAL = np.float32 if _prec == 'sp' else np.float64
+_REAL = np.float32 if _prec == "sp" else np.float64
 ctypesFF, handle = ctypesForFortran.ctypesForFortranFactory(shared_objects_library)
 
 # Initialization
 ################
 
-def init_env(omp_num_threads=None,
-             no_mpi=True,
-             unlimited_stack=True,
-             ):
+
+def init_env(
+    omp_num_threads=None,
+    no_mpi=True,
+    unlimited_stack=True,
+):
     """
     Set adequate environment for the inner libraries.
 
@@ -102,14 +103,16 @@ def init_env(omp_num_threads=None,
     """
     # because arpifs library is compiled with MPI & openMP
     if omp_num_threads is not None:
-        os.environ['OMP_NUM_THREADS'] = str(omp_num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(omp_num_threads)
     if no_mpi:
-        os.environ['DR_HOOK_NOT_MPI'] = '1'
+        os.environ["DR_HOOK_NOT_MPI"] = "1"
     if unlimited_stack:
         resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
+
 # Transforms interfaces
 #######################
+
 
 @array2string(0)
 @ctypesFF()
@@ -121,6 +124,7 @@ def ectrans_version():
     1) CD_VERSION_STRING: version string of ecTrans (always 14 elements so must be trimmed)
     """
     return ([], [(str, (1, 14), OUT)], None)
+
 
 @treatReturnCode
 @ctypesFF()
@@ -145,27 +149,30 @@ def get_legendre_assets(KSIZEJ, KTRUNC, KSLOEN, KSPOLEGL, KLOEN, KNUMMAXRESOL):
     3) PMU: sines of the Gaussian latitudes
     4) PRPNM: associated Legendre polynomials
     """
-    return ([KSIZEJ, KTRUNC, KSLOEN, KSPOLEGL, KLOEN, KNUMMAXRESOL],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), OUT),
-             (np.float64, (KSLOEN,), OUT),
-             (np.float64, (KSLOEN,), OUT),
-             (np.float64, (KSLOEN//2,KSPOLEGL), OUT)],
-            None)
+    return (
+        [KSIZEJ, KTRUNC, KSLOEN, KSPOLEGL, KLOEN, KNUMMAXRESOL],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), OUT),
+            (np.float64, (KSLOEN,), OUT),
+            (np.float64, (KSLOEN,), OUT),
+            (np.float64, (KSLOEN // 2, KSPOLEGL), OUT),
+        ],
+        None,
+    )
+
 
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
-def etrans_inq4py(KSIZEI, KSIZEJ,
-                 KPHYSICALSIZEI, KPHYSICALSIZEJ,
-                 KTRUNCX, KTRUNCY,
-                 KNUMMAXRESOL,
-                 PDELATX, PDELATY):
+def etrans_inq4py(
+    KSIZEI, KSIZEJ, KPHYSICALSIZEI, KPHYSICALSIZEJ, KTRUNCX, KTRUNCY, KNUMMAXRESOL, PDELATX, PDELATY
+):
     """
     Simplified wrapper to ETRANS_INQ.
 
@@ -180,23 +187,33 @@ def etrans_inq4py(KSIZEI, KSIZEJ,
     1) KGPTOT: number of gridpoints
     2) KSPEC: number of spectral coefficients
     """
-    return ([KSIZEI, KSIZEJ,
-             KPHYSICALSIZEI, KPHYSICALSIZEJ,
-             KTRUNCX, KTRUNCY,
-             KNUMMAXRESOL,
-             PDELATX, PDELATY],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.float64, None, IN),
-             (np.float64, None, IN),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT)],
-            None)
+    return (
+        [
+            KSIZEI,
+            KSIZEJ,
+            KPHYSICALSIZEI,
+            KPHYSICALSIZEJ,
+            KTRUNCX,
+            KTRUNCY,
+            KNUMMAXRESOL,
+            PDELATX,
+            PDELATY,
+        ],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.float64, None, IN),
+            (np.float64, None, IN),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -232,37 +249,47 @@ def trans_inq4py(KRESOL, KSIZEJ, KTRUNC, KSLOEN, KLOEN, KNUMMAXRESOL):
     8) PMU: sines of the Gaussian latitudes (global, length KSIZEJ)
     9) PGW: Gaussian weights (global, length KSIZEJ)
     """
-    return ([KRESOL, KSIZEJ, KTRUNC, KSLOEN, KLOEN, KNUMMAXRESOL],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), IN),
-             (np.int64, None, IN),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, (KSIZEJ,), OUT),
-             (np.float64, (KSIZEJ,), OUT),
-             (np.float64, (KSIZEJ,), OUT)],
-            None)
+    return (
+        [KRESOL, KSIZEJ, KTRUNC, KSLOEN, KLOEN, KNUMMAXRESOL],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), IN),
+            (np.int64, None, IN),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+            (np.int64, (KSIZEJ,), OUT),
+            (np.float64, (KSIZEJ,), OUT),
+            (np.float64, (KSIZEJ,), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
-def sp2gp_lam4py(KSIZEI, KSIZEJ,
-                   KPHYSICALSIZEI, KPHYSICALSIZEJ,
-                   KTRUNCX, KTRUNCY,
-                   KNUMMAXRESOL,
-                   KSIZE,
-                   LGRADIENT,
-                   LREORDER,
-                   PDELTAX, PDELTAY,
-                   PSPEC):
+def sp2gp_lam4py(
+    KSIZEI,
+    KSIZEJ,
+    KPHYSICALSIZEI,
+    KPHYSICALSIZEJ,
+    KTRUNCX,
+    KTRUNCY,
+    KNUMMAXRESOL,
+    KSIZE,
+    LGRADIENT,
+    LREORDER,
+    PDELTAX,
+    PDELTAY,
+    PSPEC,
+):
     """
     Transform spectral coefficients into grid-point values.
 
@@ -282,45 +309,61 @@ def sp2gp_lam4py(KSIZEI, KSIZEJ,
     2) PGPTM: N-S derivative if LGRADIENT
     3) PGPTL: E-W derivative if LGRADIENT
     """
-    return ([KSIZEI, KSIZEJ,
-             KPHYSICALSIZEI, KPHYSICALSIZEJ,
-             KTRUNCX, KTRUNCY,
-             KNUMMAXRESOL,
-             KSIZE,
-             LGRADIENT,
-             LREORDER,
-             PDELTAX, PDELTAY,
-             PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (bool, None, IN),
-             (np.float64, None, IN),
-             (np.float64, None, IN),
-             (np.float64, (KSIZE,), IN),
-             (np.float64, (KSIZEI * KSIZEJ,), OUT),
-             (np.float64, (KSIZEI * KSIZEJ,), OUT),
-             (np.float64, (KSIZEI * KSIZEJ,), OUT)],
-            None)
+    return (
+        [
+            KSIZEI,
+            KSIZEJ,
+            KPHYSICALSIZEI,
+            KPHYSICALSIZEJ,
+            KTRUNCX,
+            KTRUNCY,
+            KNUMMAXRESOL,
+            KSIZE,
+            LGRADIENT,
+            LREORDER,
+            PDELTAX,
+            PDELTAY,
+            PSPEC,
+        ],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (bool, None, IN),
+            (bool, None, IN),
+            (np.float64, None, IN),
+            (np.float64, None, IN),
+            (np.float64, (KSIZE,), IN),
+            (np.float64, (KSIZEI * KSIZEJ,), OUT),
+            (np.float64, (KSIZEI * KSIZEJ,), OUT),
+            (np.float64, (KSIZEI * KSIZEJ,), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
-def gp2sp_lam4py(KSIZE,
-                   KSIZEI, KSIZEJ,
-                   KPHYSICALSIZEI, KPHYSICALSIZEJ,
-                   KTRUNCX, KTRUNCY,
-                   KNUMMAXRESOL,
-                   PDELTAX, PDELTAY,
-                   LREORDER,
-                   PGPT):
+def gp2sp_lam4py(
+    KSIZE,
+    KSIZEI,
+    KSIZEJ,
+    KPHYSICALSIZEI,
+    KPHYSICALSIZEJ,
+    KTRUNCX,
+    KTRUNCY,
+    KNUMMAXRESOL,
+    PDELTAX,
+    PDELTAY,
+    LREORDER,
+    PGPT,
+):
     """
     Transform grid point values into spectral coefficients.
 
@@ -337,43 +380,46 @@ def gp2sp_lam4py(KSIZE,
     Returns:\n
     1) PSPEC: spectral coefficient array
     """
-    return ([KSIZE,
-             KSIZEI, KSIZEJ,
-             KPHYSICALSIZEI, KPHYSICALSIZEJ,
-             KTRUNCX, KTRUNCY,
-             KNUMMAXRESOL,
-             PDELTAX, PDELTAY,
-             LREORDER,
-             PGPT],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.float64, None, IN),
-             (np.float64, None, IN),
-             (bool, None, IN),
-             (np.float64, (KSIZEI * KSIZEJ,), IN),
-             (np.float64, (KSIZE,), OUT)],
-            None)
+    return (
+        [
+            KSIZE,
+            KSIZEI,
+            KSIZEJ,
+            KPHYSICALSIZEI,
+            KPHYSICALSIZEJ,
+            KTRUNCX,
+            KTRUNCY,
+            KNUMMAXRESOL,
+            PDELTAX,
+            PDELTAY,
+            LREORDER,
+            PGPT,
+        ],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.float64, None, IN),
+            (np.float64, None, IN),
+            (bool, None, IN),
+            (np.float64, (KSIZEI * KSIZEJ,), IN),
+            (np.float64, (KSIZE,), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
-def sp2gp_gauss4py(KSIZEJ,
-                     KTRUNC,
-                     KNUMMAXRESOL,
-                     KGPTOT,
-                     KSLOEN,
-                     KLOEN,
-                     KSIZE,
-                     LGRADIENT,
-                     LREORDER,
-                     PSPEC):
+def sp2gp_gauss4py(
+    KSIZEJ, KTRUNC, KNUMMAXRESOL, KGPTOT, KSLOEN, KLOEN, KSIZE, LGRADIENT, LREORDER, PSPEC
+):
     """
     Transform spectral coefficients into grid-point values.
 
@@ -394,44 +440,31 @@ def sp2gp_gauss4py(KSIZEJ,
     2) PGPTM: N-S derivative if LGRADIENT
     3) PGPTL: E-W derivative if LGRADIENT
     """
-    return ([KSIZEJ,
-             KTRUNC,
-             KNUMMAXRESOL,
-             KGPTOT,
-             KSLOEN,
-             KLOEN,
-             KSIZE,
-             LGRADIENT,
-             LREORDER,
-             PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (bool, None, IN),
-             (np.float64, (KSIZE,), IN),
-             (np.float64, (KGPTOT,), OUT),
-             (np.float64, (KGPTOT,), OUT),
-             (np.float64, (KGPTOT,), OUT)],
-            None)
+    return (
+        [KSIZEJ, KTRUNC, KNUMMAXRESOL, KGPTOT, KSLOEN, KLOEN, KSIZE, LGRADIENT, LREORDER, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), IN),
+            (np.int64, None, IN),
+            (bool, None, IN),
+            (bool, None, IN),
+            (np.float64, (KSIZE,), IN),
+            (np.float64, (KGPTOT,), OUT),
+            (np.float64, (KGPTOT,), OUT),
+            (np.float64, (KGPTOT,), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
-def gp2sp_gauss4py(KSPEC,
-                     KSIZEJ,
-                     KTRUNC,
-                     KNUMMAXRESOL,
-                     KSLOEN,
-                     KLOEN,
-                     KSIZE,
-                     LREORDER,
-                     PGPT):
+def gp2sp_gauss4py(KSPEC, KSIZEJ, KTRUNC, KNUMMAXRESOL, KSLOEN, KLOEN, KSIZE, LREORDER, PGPT):
     """
     Transform grid-point values into spectral coefficients.
 
@@ -449,26 +482,22 @@ def gp2sp_gauss4py(KSPEC,
     Returns:\n
     1) PSPEC: spectral coefficient array
     """
-    return ([KSPEC,
-             KSIZEJ,
-             KTRUNC,
-             KNUMMAXRESOL,
-             KSLOEN,
-             KLOEN,
-             KSIZE,
-             LREORDER,
-             PGPT],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (np.float64, (KSIZE,), IN),
-             (np.float64, (KSPEC,), OUT)],
-            None)
+    return (
+        [KSPEC, KSIZEJ, KTRUNC, KNUMMAXRESOL, KSLOEN, KLOEN, KSIZE, LREORDER, PGPT],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), IN),
+            (np.int64, None, IN),
+            (bool, None, IN),
+            (np.float64, (KSIZE,), IN),
+            (np.float64, (KSPEC,), OUT),
+        ],
+        None,
+    )
 
 
 @ctypesFF()
@@ -486,27 +515,116 @@ def sp2gp_fft1d4py(KSIZES, KTRUNC, PSPEC, KSIZEG):
     Returns:\n
     1) PGPT: grid-point field
     """
-    return ([KSIZES, KTRUNC, PSPEC, KSIZEG],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.float64, (KSIZES,), IN),
-             (np.int64, None, IN),
-             (np.float64, (KSIZEG,), OUT)],
-            None)
+    return (
+        [KSIZES, KTRUNC, PSPEC, KSIZEG],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.float64, (KSIZES,), IN),
+            (np.int64, None, IN),
+            (np.float64, (KSIZEG,), OUT),
+        ],
+        None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Adjoint distributed spectral transforms on LOCAL arrays
+# adj(INV_TRANS) = S^T != S^T W = DIR_TRANS (differ by Gaussian weights W).
+# Inner-product convention: <INV_TRANS x, y>_Euclid = <x, INV_TRANSAD y>_mfold
+#   where _Euclid is the unweighted grid sum and _mfold applies factor 2 for m>0.
+# ---------------------------------------------------------------------------
+
+
+@treatReturnCode
+@ctypesFF()
+@addReturnCode
+def inv_trans_scalar_dist4py_ad(KSPEC2, KGPTOT, KFLD, PGP):
+    """Adjoint of inv_trans_scalar_dist4py (INV_TRANSAD): grid-point seed -> spectral result.
+    PGP (KFLD, KGPTOT) IN; returns PSPEC (KFLD, KSPEC2).
+    Note: adj(INV_TRANS) = S^T != DIR_TRANS = S^T W (differ by Gaussian weights W)."""
+    return (
+        [KSPEC2, KGPTOT, KFLD, PGP],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KSPEC2), OUT),
+        ],
+        None,
+    )
+
+
+@treatReturnCode
+@ctypesFF()
+@addReturnCode
+def dir_trans_scalar_dist4py_ad(KSPEC2, KGPTOT, KFLD, PSPEC):
+    """Adjoint of dir_trans_scalar_dist4py (DIR_TRANSAD): spectral seed -> grid result.
+    PSPEC (KFLD, KSPEC2) IN; returns PGP (KFLD, KGPTOT)."""
+    return (
+        [KSPEC2, KGPTOT, KFLD, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
+
+
+@treatReturnCode
+@ctypesFF()
+@addReturnCode
+def inv_trans_uv_dist4py_ad(KSPEC2, KGPTOT, KFLD, PGPU, PGPV):
+    """Adjoint of inv_trans_uv_dist4py (INV_TRANSAD): grid u,v seeds -> spectral vor,div.
+    PGPU, PGPV (KFLD, KGPTOT) IN; returns PSPVOR, PSPDIV (KFLD, KSPEC2)."""
+    return (
+        [KSPEC2, KGPTOT, KFLD, PGPU, PGPV],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KSPEC2), OUT),
+            (_REAL, (KFLD, KSPEC2), OUT),
+        ],
+        None,
+    )
+
+
+@treatReturnCode
+@ctypesFF()
+@addReturnCode
+def dir_trans_uv_dist4py_ad(KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV):
+    """Adjoint of dir_trans_uv_dist4py (DIR_TRANSAD): spectral vor,div seeds -> grid u,v.
+    PSPVOR, PSPDIV (KFLD, KSPEC2) IN; returns PGPU, PGPV (KFLD, KGPTOT)."""
+    return (
+        [KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
+
 
 __version__ = ectrans_version().strip()
-
-
 # === distributed-memory (MPI) interface ===
 
 
 @ctypesFF()
 def mpl_init4py():
     """Initialise FIAT MPL (after mpi4py). Returns (rank[1-based], size)."""
-    return ([],
-            [(np.int64, None, OUT),
-             (np.int64, None, OUT)],
-            None)
+    return ([], [(np.int64, None, OUT), (np.int64, None, OUT)], None)
 
 
 @ctypesFF()
@@ -520,15 +638,19 @@ def mpl_end4py():
 @addReturnCode
 def setup_trans0_4py(KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL):
     """Parallel resolution-independent setup (processor grid). Returns (k_regions_ns, k_regions_ew)."""
-    return ([KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT)],
-            None)
+    return (
+        [KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (bool, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, OUT),
+            (np.int64, None, OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -537,15 +659,19 @@ def setup_trans0_4py(KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL):
 def setup_trans_4py(KSMAX, KDGL, KSLOEN, KLOEN, LDSPLIT, LDUSEFLT):
     """Parallel resolution-dependent setup (LDUSEFLT selects Fast Legendre Transform).
     Returns kresol."""
-    return ([KSMAX, KDGL, KSLOEN, KLOEN, LDSPLIT, LDUSEFLT],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KSLOEN,), IN),
-             (bool, None, IN),
-             (bool, None, IN),
-             (np.int64, None, OUT)],
-            None)
+    return (
+        [KSMAX, KDGL, KSLOEN, KLOEN, LDSPLIT, LDUSEFLT],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KSLOEN,), IN),
+            (bool, None, IN),
+            (bool, None, IN),
+            (np.int64, None, OUT),
+        ],
+        None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -554,19 +680,24 @@ def setup_trans_4py(KSMAX, KDGL, KSLOEN, KLOEN, LDSPLIT, LDUSEFLT):
 # i.e. the reverse of the Fortran (X, KFLD) dims -> Python (KFLD, X). Single precision.
 # ---------------------------------------------------------------------------
 
+
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
 def dist_spec4py(KSPEC2G, KSPEC2, KFLD, KFROM, PSPECG):
     """Scatter global spectral PSPECG(KFLD,KSPEC2G) -> local PSPEC(KFLD,KSPEC2)."""
-    return ([KSPEC2G, KSPEC2, KFLD, KFROM, PSPECG],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KFLD,), IN),
-             (_REAL, (KFLD, KSPEC2G), IN),
-             (_REAL, (KFLD, KSPEC2), OUT)],
-            None)
+    return (
+        [KSPEC2G, KSPEC2, KFLD, KFROM, PSPECG],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KFLD,), IN),
+            (_REAL, (KFLD, KSPEC2G), IN),
+            (_REAL, (KFLD, KSPEC2), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -574,14 +705,18 @@ def dist_spec4py(KSPEC2G, KSPEC2, KFLD, KFROM, PSPECG):
 @addReturnCode
 def gath_spec4py(KSPEC2G, KSPEC2, KFLD, KTO, PSPEC):
     """Gather local spectral PSPEC(KFLD,KSPEC2) -> global PSPECG(KFLD,KSPEC2G)."""
-    return ([KSPEC2G, KSPEC2, KFLD, KTO, PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KFLD,), IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD, KSPEC2G), OUT)],
-            None)
+    return (
+        [KSPEC2G, KSPEC2, KFLD, KTO, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KFLD,), IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KSPEC2G), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -589,14 +724,18 @@ def gath_spec4py(KSPEC2G, KSPEC2, KFLD, KTO, PSPEC):
 @addReturnCode
 def dist_grid4py(KGPTOTG, KGPTOT, KFLD, KFROM, PGPG):
     """Scatter global grid PGPG(KFLD,KGPTOTG) -> local PGP(KFLD,KGPTOT)."""
-    return ([KGPTOTG, KGPTOT, KFLD, KFROM, PGPG],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KFLD,), IN),
-             (_REAL, (KFLD, KGPTOTG), IN),
-             (_REAL, (KFLD, KGPTOT), OUT)],
-            None)
+    return (
+        [KGPTOTG, KGPTOT, KFLD, KFROM, PGPG],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KFLD,), IN),
+            (_REAL, (KFLD, KGPTOTG), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -604,14 +743,18 @@ def dist_grid4py(KGPTOTG, KGPTOT, KFLD, KFROM, PGPG):
 @addReturnCode
 def gath_grid4py(KGPTOTG, KGPTOT, KFLD, KTO, PGP):
     """Gather local grid PGP(KFLD,KGPTOT) -> global PGPG(KFLD,KGPTOTG)."""
-    return ([KGPTOTG, KGPTOT, KFLD, KTO, PGP],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, (KFLD,), IN),
-             (_REAL, (KFLD, KGPTOT), IN),
-             (_REAL, (KFLD, KGPTOTG), OUT)],
-            None)
+    return (
+        [KGPTOTG, KGPTOT, KFLD, KTO, PGP],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, (KFLD,), IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KGPTOTG), OUT),
+        ],
+        None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -619,18 +762,23 @@ def gath_grid4py(KGPTOTG, KGPTOT, KFLD, KTO, PGP):
 # precision; spectral (KFLD,KSPEC2) model order, grid (KFLD,KGPTOT) single block.
 # ---------------------------------------------------------------------------
 
+
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
 def inv_trans_scalar_dist4py(KSPEC2, KGPTOT, KFLD, PSPEC):
     """Local inverse transform: scalar spectral (KFLD,KSPEC2) -> grid (KFLD,KGPTOT)."""
-    return ([KSPEC2, KGPTOT, KFLD, PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD, KGPTOT), OUT)],
-            None)
+    return (
+        [KSPEC2, KGPTOT, KFLD, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -639,15 +787,19 @@ def inv_trans_scalar_dist4py(KSPEC2, KGPTOT, KFLD, PSPEC):
 def inv_trans_scalar_ders_dist4py(KSPEC2, KGPTOT, KFLD, PSPEC):
     """Local inverse transform with derivatives: scalar spectral (KFLD,KSPEC2) ->
     grid value, N-S derivative, E-W derivative (each (KFLD,KGPTOT))."""
-    return ([KSPEC2, KGPTOT, KFLD, PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD, KGPTOT), OUT),
-             (_REAL, (KFLD, KGPTOT), OUT),
-             (_REAL, (KFLD, KGPTOT), OUT)],
-            None)
+    return (
+        [KSPEC2, KGPTOT, KFLD, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+            (_REAL, (KFLD, KGPTOT), OUT),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -655,13 +807,17 @@ def inv_trans_scalar_ders_dist4py(KSPEC2, KGPTOT, KFLD, PSPEC):
 @addReturnCode
 def dir_trans_scalar_dist4py(KSPEC2, KGPTOT, KFLD, PGP):
     """Local direct transform: scalar grid (KFLD,KGPTOT) -> spectral (KFLD,KSPEC2)."""
-    return ([KSPEC2, KGPTOT, KFLD, PGP],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KGPTOT), IN),
-             (_REAL, (KFLD, KSPEC2), OUT)],
-            None)
+    return (
+        [KSPEC2, KGPTOT, KFLD, PGP],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KSPEC2), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -669,15 +825,19 @@ def dir_trans_scalar_dist4py(KSPEC2, KGPTOT, KFLD, PGP):
 @addReturnCode
 def inv_trans_uv_dist4py(KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV):
     """Local inverse transform: vorticity/divergence -> u,v (KFLD,KGPTOT each)."""
-    return ([KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD, KGPTOT), OUT),
-             (_REAL, (KFLD, KGPTOT), OUT)],
-            None)
+    return (
+        [KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD, KGPTOT), OUT),
+            (_REAL, (KFLD, KGPTOT), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -685,32 +845,41 @@ def inv_trans_uv_dist4py(KSPEC2, KGPTOT, KFLD, PSPVOR, PSPDIV):
 @addReturnCode
 def dir_trans_uv_dist4py(KSPEC2, KGPTOT, KFLD, PGPU, PGPV):
     """Local direct transform: u,v -> vorticity/divergence (KFLD,KSPEC2 each)."""
-    return ([KSPEC2, KGPTOT, KFLD, PGPU, PGPV],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KGPTOT), IN),
-             (_REAL, (KFLD, KGPTOT), IN),
-             (_REAL, (KFLD, KSPEC2), OUT),
-             (_REAL, (KFLD, KSPEC2), OUT)],
-            None)
+    return (
+        [KSPEC2, KGPTOT, KFLD, PGPU, PGPV],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD, KSPEC2), OUT),
+            (_REAL, (KFLD, KSPEC2), OUT),
+        ],
+        None,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Norms (global, gathered). Spectral input (KFLD, KSPEC2); grid input (KFLD, KGPTOT).
 # ---------------------------------------------------------------------------
 
+
 @treatReturnCode
 @ctypesFF()
 @addReturnCode
 def specnorm4py(KSPEC2, KFLD, PSPEC):
     """Global spectral L2 norm per field. Returns PNORM(KFLD)."""
-    return ([KSPEC2, KFLD, PSPEC],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KSPEC2), IN),
-             (_REAL, (KFLD,), OUT)],
-            None)
+    return (
+        [KSPEC2, KFLD, PSPEC],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KSPEC2), IN),
+            (_REAL, (KFLD,), OUT),
+        ],
+        None,
+    )
 
 
 @treatReturnCode
@@ -718,14 +887,18 @@ def specnorm4py(KSPEC2, KFLD, PSPEC):
 @addReturnCode
 def gpnorm_trans4py(KGPTOT, KFLD, PGP):
     """Global grid-point average/min/max per field. Returns (PAVE, PMIN, PMAX)."""
-    return ([KGPTOT, KFLD, PGP],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (_REAL, (KFLD, KGPTOT), IN),
-             (_REAL, (KFLD,), OUT),
-             (_REAL, (KFLD,), OUT),
-             (_REAL, (KFLD,), OUT)],
-            None)
+    return (
+        [KGPTOT, KFLD, PGP],
+        [
+            (np.int64, None, IN),
+            (np.int64, None, IN),
+            (_REAL, (KFLD, KGPTOT), IN),
+            (_REAL, (KFLD,), OUT),
+            (_REAL, (KFLD,), OUT),
+            (_REAL, (KFLD,), OUT),
+        ],
+        None,
+    )
 
 
 __version__ = ectrans_version().strip()

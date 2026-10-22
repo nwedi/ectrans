@@ -132,7 +132,7 @@ SUBROUTINE TRANS_INQ_GRID4PY(KRETURNCODE, KRESOL, KDGL, KNRNS, KNREW, &
 !    KRESOL        : resolution tag from SETUP_TRANS_4PY
 !    KDGL          : number of latitude rows of that resolution
 !    KNRNS, KNREW  : numbers of N-S bands and of E-W regions, KREGIONS_NS and KREGIONS_EW
-!                    of SETUP_TRANS0_4PY (or SETUP_TRANS0_REGIONS4PY)
+!                    of SETUP_TRANS0_4PY
 ! ** RETURNS
 !    KGPTOT, KGPTOTG, KGPTOTMX : grid points on this task, on the globe, on any task at most
 !    KFRSTLOFF     : offset of the first latitude of this task's N-S band (NFRSTLOFF)

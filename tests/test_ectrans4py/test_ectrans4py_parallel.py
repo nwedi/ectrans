@@ -383,7 +383,7 @@ def setUpModule():
     # KPRGPNS=n_rank, KPRGPEW=1, KPRTRW=n_rank, LDEQ_REGIONS=False, KMAX_RESOL, LDMPOFF=False:
     # setup_trans0_4py, also returning the region counts of the grid-point partition
     context.regions_ns, context.regions_ew, context.regions = (
-        ectrans4py.setup_trans0_regions4py(n_rank, 1, n_rank, False, KMAX_RESOL, False))
+        ectrans4py.setup_trans0_4py(n_rank, 1, n_rank, False, KMAX_RESOL, False))
 
     # KSMAX=TRUNCATION, KDGL=num_lats, KSLOEN=num_lats, KLOEN=lons_per_lat, LDSPLIT=True
     # LDUSEFLT=False

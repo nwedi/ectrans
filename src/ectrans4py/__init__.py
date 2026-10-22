@@ -39,7 +39,7 @@ bindings take positional arguments only (the ctypesForFortran wrappers forward
 A resolution can be set up for grid-point space only (``setup_trans_4py`` with
 ``LDGRIDONLY`` True, CPU only), as the IFS does for its radiation grid: its grid-point
 partition is distributed (``dist_grid4py``/``gath_grid4py``) and inquired
-(``trans_inq_grid4py``, with the region counts of ``setup_trans0_regions4py``), and
+(``trans_inq_grid4py``, with the region counts of ``setup_trans0_4py``), and
 every binding that needs spectral or Fourier space raises ``RuntimeError`` with error
 code 102 for it, instead of ecTrans crashing.
 """
@@ -283,7 +283,7 @@ def trans_inq_grid4py(KRESOL, KDGL, KNRNS, KNREW):
     1) KRESOL: resolution tag from setup_trans_4py
     2) KDGL: number of latitude rows of that resolution
     3,4) KNRNS, KNREW: numbers of N-S bands and of E-W regions of the grid-point partition,
-       k_regions_ns and k_regions_ew of setup_trans0_4py (or setup_trans0_regions4py)
+       k_regions_ns and k_regions_ew of setup_trans0_4py
 
     Returns:\n
     1) NGPTOT: grid points on this task
@@ -757,7 +757,8 @@ def setup_trans0_4py(KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL, LDMPOFF
              (np.int64, None, IN),
              (bool, None, IN),
              (np.int64, None, OUT),
-             (np.int64, None, OUT)],
+             (np.int64, None, OUT),
+             (np.int64, (KPRGPNS * KPRGPEW,), OUT)],
             None)
 
 
@@ -783,28 +784,6 @@ def setup_trans_4py(KSMAX, KDGL, KSLOEN, KLOEN, LDSPLIT, LDUSEFLT, LDGRIDONLY=Fa
              (bool, None, IN),
              (np.int64, None, OUT),
              (bool, None, IN)],
-            None)
-
-
-@treatReturnCode
-@ctypesFF()
-@addReturnCode
-def setup_trans0_regions4py(KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL, LDMPOFF):
-    """setup_trans0_4py that also returns the number of E-W regions of each N-S band of the
-    grid-point partition (SETUP_TRANS0's K_REGIONS; with equal regions, it differs between
-    the bands). The same setup otherwise: call one of the two, once per process.
-    Returns (k_regions_ns, k_regions_ew, k_regions), k_regions of length KPRGPNS * KPRGPEW:
-    the number of E-W regions of N-S band 1..k_regions_ns, zero beyond."""
-    return ([KPRGPNS, KPRGPEW, KPRTRW, LDEQ_REGIONS, KMAX_RESOL, LDMPOFF],
-            [(np.int64, None, IN),
-             (np.int64, None, IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (np.int64, None, IN),
-             (bool, None, IN),
-             (np.int64, None, OUT),
-             (np.int64, None, OUT),
-             (np.int64, (KPRGPNS * KPRGPEW,), OUT)],
             None)
 
 
